@@ -1,0 +1,47 @@
+# File Monitor Configuration
+# This section configures the file monitoring functionality
+file_monitor:
+    # Enable or disable the file monitor (optional, default: true)
+    enabled: true
+
+    # Timeout in seconds for file operations (optional, default: 60)
+    timeout: 60
+
+    # Retry count for failed operations (optional, default: 3)
+    retry: 3
+
+    # Check interval in seconds (optional, default: 300)
+    check_interval: 300
+
+    # List of paths to monitor
+    paths:
+        # Monitor a specific file and delete it when found
+        - path: "C:\\temp\\test.txt"
+          delete: true
+
+        # Monitor log files without deletion
+        - path: "C:\\logs\\*.log"
+          delete: false
+
+        # Monitor and clean up temporary files
+        - path: "C:\\Windows\\Temp\\*.tmp"
+          delete: true
+
+        # Recursive monitoring of specific file types
+        - path: "C:\\Users\\**\\Downloads\\*.exe"
+          delete: true
+
+        # Monitor specific directory for any changes
+        - path: "C:\\important\\*.*"
+          delete: false
+
+    # Advanced settings (optional)
+    settings:
+        # Maximum file size to process in bytes (optional, default: 104857600 [100MB])
+        max_file_size: 104857600
+
+        # Maximum number of files to process per check (optional, default: 1000)
+        max_files_per_check: 1000
+
+        # Whether to log all file operations (optional, default: false)
+        log_operations: true

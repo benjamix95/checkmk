@@ -1,0 +1,44 @@
+# Test configuration for File Monitor Provider
+global:
+  enabled: true
+  sections:
+    - file_monitor  # Enable file_monitor section
+
+file_monitor:
+  enabled: true
+  timeout: 60
+  retry: 3
+  async: false  # Run synchronously for testing
+  cache_age: 0  # No caching for testing
+
+  # Test paths
+  paths:
+    # Test single file monitoring
+    - path: "${TEMP}\\test_single.txt"
+      delete: true
+
+    # Test glob pattern monitoring
+    - path: "${TEMP}\\test_*.log"
+      delete: false
+
+    # Test recursive monitoring
+    - path: "${TEMP}\\**\\*.tmp"
+      delete: true
+
+  # Test settings
+  settings:
+    max_file_size: 1048576  # 1MB
+    max_files_per_check: 10
+    log_operations: true
+
+  # Test notifications
+  notifications:
+    event_log: true
+    checkmk: true
+
+# Log settings for testing
+logging:
+  level: debug
+  console: true
+  file: true
+  filename: "${TEMP}\\file_monitor_test.log"

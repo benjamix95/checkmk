@@ -1,0 +1,55 @@
+# File Monitor Configuration
+global:
+  enabled: true
+  sections:
+    - file_monitor
+
+file_monitor:
+  enabled: true
+  timeout: 60
+  retry: 3
+  async: true
+  cache_age: 300
+
+  # Intervallo di controllo in secondi (default: 300)
+  check_interval: 300
+
+  # Lista dei percorsi da monitorare
+  paths:
+    # Monitoraggio di un file specifico con eliminazione automatica
+    - path: "C:\\temp\\test.txt"
+      delete: true
+
+    # Monitoraggio di file di log senza eliminazione
+    - path: "C:\\logs\\*.log"
+      delete: false
+
+    # Monitoraggio e pulizia di file temporanei
+    - path: "C:\\Windows\\Temp\\*.tmp"
+      delete: true
+
+    # Monitoraggio ricorsivo di file specifici
+    - path: "C:\\Users\\**\\Downloads\\*.exe"
+      delete: true
+
+    # Monitoraggio di una directory specifica
+    - path: "C:\\important\\*.*"
+      delete: false
+
+  # Impostazioni avanzate
+  settings:
+    # Dimensione massima del file da processare in bytes (default: 100MB)
+    max_file_size: 104857600
+
+    # Numero massimo di file da processare per controllo (default: 1000)
+    max_files_per_check: 1000
+
+    # Log di tutte le operazioni sui file (default: false)
+    log_operations: true
+
+    # Modalità di notifica
+    notifications:
+      # Invia notifiche attraverso il sistema di eventi di Windows
+      event_log: true
+      # Invia notifiche attraverso il sistema di notifiche di CheckMK
+      checkmk: true

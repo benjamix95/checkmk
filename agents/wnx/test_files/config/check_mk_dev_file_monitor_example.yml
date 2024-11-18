@@ -1,0 +1,40 @@
+# File Monitor Configuration Example
+file_monitor:
+  # Lista dei percorsi da monitorare
+  paths:
+    # Monitoraggio di un file specifico con eliminazione automatica
+    - path: "C:\\temp\\test.txt"
+      delete: true
+
+    # Monitoraggio di file di log senza eliminazione
+    - path: "C:\\logs\\*.log"
+      delete: false
+
+    # Monitoraggio di file eseguibili con eliminazione automatica
+    - path: "C:\\downloads\\*.exe"
+      delete: true
+
+    # Monitoraggio di una directory specifica
+    - path: "C:\\important\\*"
+      delete: false
+
+    # Monitoraggio ricorsivo di file temporanei
+    - path: "C:\\users\\**\\temp\\*.tmp"
+      delete: true
+
+  # Intervallo di controllo in secondi (opzionale, default: 300)
+  check_interval: 300
+
+  # Configurazione delle notifiche (per futura implementazione)
+  notifications:
+    enabled: true
+    methods:
+      - type: "event_log"
+        level: "warning"
+      - type: "checkmk"
+        severity: 1
+
+  # Configurazione dei limiti (per futura implementazione)
+  limits:
+    max_file_size: 1048576  # 1MB in bytes
+    max_files_per_check: 1000
