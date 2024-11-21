@@ -1,13 +1,19 @@
 ###############################################################################
-# Configurazione CMake per il File Monitor Provider
+# File di configurazione CMake per i test unitari
 ###############################################################################
 
-# Trova le dipendenze
-find_package(yaml-cpp CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
+# Definizione dei file sorgente per i test
+set(FILE_MONITOR_TEST_SOURCE_FILES
+    providers/test_file_monitor.cpp
+)
+
+# Creazione dell'eseguibile dei test
+add_executable(unit_tests
+    ${FILE_MONITOR_TEST_SOURCE_FILES}
+)
 
 # Configurazione delle directory di inclusione
-target_include_directories(engine
+target_include_directories(unit_tests
     PRIVATE
         # Directory principale degli header
         ${CMAKE_SOURCE_DIR}/include
@@ -15,26 +21,28 @@ target_include_directories(engine
         # Directory dei sorgenti
         ${CMAKE_SOURCE_DIR}/src
         
-        # Directory specifiche del provider
+        # Directory dei test
+        ${CMAKE_SOURCE_DIR}/test/unit
+        
+        # Directory specifica dei provider
         ${CMAKE_SOURCE_DIR}/src/engine/providers
 )
 
-# Configurazione dei file sorgente
-target_sources(engine
+# Collegamento delle librerie
+target_link_libraries(unit_tests
     PRIVATE
-        # File sorgente principale del provider
-        ${CMAKE_CURRENT_SOURCE_DIR}/file_monitor.cpp
+        # Libreria principale da testare
+        engine
         
-        # Header file del provider
-        ${CMAKE_SOURCE_DIR}/include/providers/file_monitor.h
-)
-
-# Configurazione delle librerie da collegare
-target_link_libraries(engine
-    PRIVATE
-        # Librerie esterne
-        yaml-cpp::yaml-cpp
+        # Framework di test
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
+        GTest::gmock_main
+        
+        # Librerie di supporto
         fmt::fmt
+        yaml-cpp::yaml-cpp
         
         # Librerie di sistema Windows
         wsock32
@@ -58,12 +66,9 @@ target_link_libraries(engine
         shlwapi
 )
 
-# Configurazione delle definizioni del compilatore
-target_compile_definitions(engine
+# Definizioni del compilatore
+target_compile_definitions(unit_tests
     PRIVATE
-        # Definizioni per l'esportazione DLL
-        ENGINE_EXPORTS
-        
         # Definizioni per il supporto Unicode
         UNICODE
         _UNICODE
@@ -75,13 +80,8 @@ target_compile_definitions(engine
         # Disabilita gli avvisi di sicurezza
         _CRT_SECURE_NO_WARNINGS
         
-        # Definizioni per il supporto delle librerie
-        FMT_SHARED
-        YAML_CPP_DLL
-
-        # Definizioni per filesystem
-        _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-        _HAS_AUTO_PTR_ETC=1
+        # Definizioni per i test
+        UNIT_TESTING
         
         # Definizioni condizionali per Debug/Release
         $<$<CONFIG:Debug>:
@@ -95,7 +95,7 @@ target_compile_definitions(engine
 
 # Configurazione delle opzioni del compilatore Microsoft Visual C++
 if(MSVC)
-    target_compile_options(engine
+    target_compile_options(unit_tests
         PRIVATE
             # Livello di avviso massimo
             /W4
@@ -106,7 +106,6 @@ if(MSVC)
             # Disabilita avvisi specifici
             /wd4251  # class needs to have dll-interface
             /wd4275  # non dll-interface class used as base
-            /wd4996  # deprecation warnings
             
             # Ottimizzazioni per la build Release
             $<$<CONFIG:Release>:
@@ -123,13 +122,10 @@ if(MSVC)
                 /Zi      # Debug info in PDB
                 /RTC1    # Runtime error checks
             >
-
-            # Abilita C++17 filesystem
-            /std:c++17
     )
     
     # Opzioni del linker
-    target_link_options(engine
+    target_link_options(unit_tests
         PRIVATE
             # Ottimizzazioni per la build Release
             $<$<CONFIG:Release>:
@@ -146,59 +142,47 @@ if(MSVC)
     )
 endif()
 
-# Configurazione delle proprietà della libreria
-set_target_properties(engine PROPERTIES
+# Configurazione delle proprietà dell'eseguibile dei test
+set_target_properties(unit_tests PROPERTIES
     # Nome output
-    OUTPUT_NAME "checkmk_file_monitor"
-    
-    # Versione
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-    
-    # Prefisso/Suffisso per Windows
-    PREFIX ""
-    SUFFIX ".dll"
+    OUTPUT_NAME "checkmk_file_monitor_tests"
     
     # Cartella di output
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     
     # Cartella PDB
     PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    
-    # Definizioni esportazione
-    DEFINE_SYMBOL "ENGINE_EXPORTS"
-    
-    # Abilita esportazione di tutti i simboli
-    WINDOWS_EXPORT_ALL_SYMBOLS TRUE
 )
 
-# Configurazione dell'installazione
-install(TARGETS engine
+# Aggiunta dei test al sistema di test di CMake
+add_test(
+    NAME file_monitor_tests
+    COMMAND unit_tests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+# Configurazione dell'ambiente di test
+set_tests_properties(file_monitor_tests
+    PROPERTIES
+        # Timeout per i test (in secondi)
+        TIMEOUT 300
+        
+        # Directory di lavoro per i test
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        
+        # Variabili d'ambiente per i test
+        ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/bin;$ENV{PATH}"
+)
+
+# Installazione dell'eseguibile dei test
+install(TARGETS unit_tests
     RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    
-    # Installa anche i file PDB in Debug
     CONFIGURATIONS Debug
     COMPONENT development
 )
 
-# Installazione degli header
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/providers/
-    DESTINATION include/providers
-    FILES_MATCHING PATTERN "*.h"
-)
-
-# Installazione della documentazione
+# Installazione dei file di configurazione di test
 install(FILES
-    ${CMAKE_SOURCE_DIR}/doc/file_monitor.md
-    DESTINATION share/doc/checkmk/agents/windows
-)
-
-# Installazione dei file di configurazione di esempio
-install(FILES
-    ${CMAKE_SOURCE_DIR}/test_files/config/check_mk_dev_file_monitor_example.yml
-    DESTINATION share/checkmk/agents/windows/config_examples
+    ${CMAKE_SOURCE_DIR}/test_files/config/check_mk_dev_file_monitor_test.yml
+    DESTINATION share/checkmk/agents/windows/test_config
 )

@@ -1,40 +1,110 @@
-# File Monitor Configuration Example
+###############################################################################
+# Configurazione di esempio per il File Monitor Provider di Check_MK
+###############################################################################
+
 file_monitor:
-  # Lista dei percorsi da monitorare
-  paths:
-    # Monitoraggio di un file specifico con eliminazione automatica
-    - path: "C:\\temp\\test.txt"
-      delete: true
+    # Intervallo di controllo in secondi
+    # Definisce quanto spesso il provider controlla i file/directory configurati
+    # Valore minimo consigliato: 60 secondi (1 minuto)
+    # Valore predefinito: 300 secondi (5 minuti)
+    check_interval: 300
 
-    # Monitoraggio di file di log senza eliminazione
-    - path: "C:\\logs\\*.log"
-      delete: false
+    # Lista dei percorsi da monitorare
+    paths:
+        # Esempio 1: Monitoraggio e pulizia dei file temporanei di Windows
+        - path: "C:\\Windows\\Temp"
+          is_directory: true        # Indica che questo è una directory
+          delete: true             # I file trovati verranno eliminati
+          pattern: "*.tmp"         # Monitora solo file con estensione .tmp
+          description: "Pulizia file temporanei di Windows"
 
-    # Monitoraggio di file eseguibili con eliminazione automatica
-    - path: "C:\\downloads\\*.exe"
-      delete: true
+        # Esempio 2: Monitoraggio dei file di log
+        - path: "C:\\Program Files\\Application\\Logs"
+          is_directory: true
+          delete: false            # Non eliminare i file, solo monitoraggio
+          pattern: "error_*.log"   # Monitora solo i file di log degli errori
+          description: "Monitoraggio file di log degli errori"
 
-    # Monitoraggio di una directory specifica
-    - path: "C:\\important\\*"
-      delete: false
+        # Esempio 3: Monitoraggio di un file specifico
+        - path: "C:\\Data\\important.dat"
+          is_directory: false      # Indica che questo è un file singolo
+          delete: false
+          pattern: "*.dat"
+          description: "Monitoraggio file dati importante"
 
-    # Monitoraggio ricorsivo di file temporanei
-    - path: "C:\\users\\**\\temp\\*.tmp"
-      delete: true
+        # Esempio 4: Pulizia dei file di backup vecchi
+        - path: "C:\\Backup"
+          is_directory: true
+          delete: true
+          pattern: "backup_*.{bak,old}"  # Monitora file .bak e .old
+          min_age: 604800         # Elimina solo file più vecchi di 7 giorni (in secondi)
+          description: "Pulizia file di backup vecchi"
 
-  # Intervallo di controllo in secondi (opzionale, default: 300)
-  check_interval: 300
+        # Esempio 5: Monitoraggio file di crash
+        - path: "C:\\ProgramData\\CrashDumps"
+          is_directory: true
+          delete: true
+          pattern: "*.dmp"
+          min_size: 1048576       # Elimina solo file più grandi di 1 MB
+          description: "Pulizia file di crash dump"
 
-  # Configurazione delle notifiche (per futura implementazione)
-  notifications:
-    enabled: true
-    methods:
-      - type: "event_log"
-        level: "warning"
-      - type: "checkmk"
-        severity: 1
+        # Esempio 6: Monitoraggio con esclusioni
+        - path: "C:\\Users\\Public\\Downloads"
+          is_directory: true
+          delete: true
+          pattern: "*.temp"
+          exclude_patterns:        # Pattern di file da non eliminare
+            - "important_*.temp"
+            - "backup_*.temp"
+          description: "Pulizia file temporanei con esclusioni"
 
-  # Configurazione dei limiti (per futura implementazione)
-  limits:
-    max_file_size: 1048576  # 1MB in bytes
-    max_files_per_check: 1000
+# Configurazioni avanzate (opzionali)
+advanced_settings:
+    # Configurazione del logging
+    logging:
+        enabled: true             # Abilita il logging delle operazioni
+        level: "INFO"             # Livello di logging (DEBUG, INFO, WARNING, ERROR)
+        file: "C:\\ProgramData\\checkmk\\logs\\file_monitor.log"
+
+    # Configurazione delle notifiche
+    notifications:
+        enabled: true             # Abilita le notifiche
+        methods:
+            - type: "event_log"   # Invia notifiche al registro eventi di Windows
+              source: "CheckMK File Monitor"
+
+    # Impostazioni di sicurezza
+    security:
+        verify_permissions: true  # Verifica i permessi prima delle operazioni
+        require_admin: false      # Non richiede privilegi amministrativi
+
+# Note sulla configurazione:
+# 1. Tutti i percorsi devono utilizzare doppi backslash (\\)
+# 2. Il pattern supporta i seguenti caratteri speciali:
+#    * = qualsiasi sequenza di caratteri
+#    ? = un singolo carattere qualsiasi
+#    [abc] = uno dei caratteri specificati
+#    [0-9] = un carattere numerico
+#    {pattern1,pattern2} = uno dei pattern specificati
+# 3. min_age è specificato in secondi
+# 4. min_size è specificato in bytes
+# 5. exclude_patterns ha priorità sul pattern principale
+# 6. La descrizione è opzionale ma consigliata per documentazione
+
+# Esempi di pattern comuni:
+# *.tmp           = Tutti i file con estensione .tmp
+# test_*.log      = File di log che iniziano con "test_"
+# error_[0-9].txt = File di testo con un numero (error_1.txt, error_2.txt, ecc.)
+# *.{bak,old}     = File con estensione .bak o .old
+# temp_????.*     = File che iniziano con "temp_" seguito da 4 caratteri
+
+# Valori temporali comuni in secondi:
+# 1 ora    = 3600
+# 1 giorno = 86400
+# 1 settimana = 604800
+# 30 giorni = 2592000
+
+# Dimensioni comuni in bytes:
+# 1 KB = 1024
+# 1 MB = 1048576
+# 1 GB = 1073741824

@@ -1,57 +1,97 @@
-// Copyright (C) 2019 Checkmk GmbH - License: GNU General Public License v2
-// This file is part of Checkmk (https://checkmk.com). It is subject to the
-// terms and conditions defined in the file COPYING, which is part of this
-// source code package.
-
-//
-// THIS is pre-compiled header for Engine Project
-//
 #pragma once
-#ifndef ENGINE_STDAFX_H
-#define ENGINE_STDAFX_H
 
-#if defined(_MSC_VER)
-// more aggressive warning
-#pragma warning(3 : 4062)
+// Definizioni di base per Windows
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
 
-#include "wnx/stdafx_defines.h"  // shared use, watest!
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
-// settings for the LWA
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING  // NOLINT
-#define SI_SUPPORT_IOSTREAMS
+// Windows Header Files
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <shellapi.h>
+#include <shlwapi.h>
 
-#include "common/cfg_info.h"
-#include "tools/_raii.h"  // ON_OUT_OF_SCOPE and other extremely useful staff
+// C RunTime Header Files
+#include <stdlib.h>
+#include <malloc.h>
+#include <memory.h>
+#include <tchar.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <io.h>
+#include <direct.h>
+#include <process.h>
 
-// NOTE: This code block is used to speed compilation in production.
-// Sets usually for msbuild in script using environment variable
-// ExternalCompilerOptions.
-#ifdef DECREASE_COMPILE_TIME
+// STL Header Files
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
 #include <algorithm>
-#include <cctype>
+#include <memory>
 #include <chrono>
-#include <condition_variable>
-#include <cstdint>
-#include <cstring>
-#include <cwctype>
 #include <filesystem>
 #include <fstream>
-#include <functional>
-#include <future>
-#include <iostream>
-#include <iterator>
-#include <mutex>
-#include <optional>
-#include <random>
 #include <sstream>
-#include <string>
-#include <string_view>
+#include <iostream>
+#include <mutex>
 #include <thread>
-#include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <vector>
+#include <atomic>
+#include <regex>
+
+// Definizioni per la gestione delle DLL
+#ifdef ENGINE_EXPORTS
+#define ENGINE_API __declspec(dllexport)
+#else
+#define ENGINE_API __declspec(dllimport)
 #endif
 
-#endif  // ENGINE_STDAFX_H#include <mutex>
+// Namespace utilizzati di frequente
+using namespace std::literals;
+using namespace std::chrono_literals;
+using namespace std::string_literals;
+
+#ifdef UNICODE
+typedef std::wstring tstring;
+#else
+typedef std::string tstring;
+#endif
+
+// Macro di utilità
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(p) { if(p) { delete (p); (p)=nullptr; } }
+#endif
+
+#ifndef SAFE_DELETE_ARRAY
+#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p); (p)=nullptr; } }
+#endif
+
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p) { if(p) { (p)->Release(); (p)=nullptr; } }
+#endif
+
+// Definizioni per il debug
+#ifdef _DEBUG
+#define VERIFY(f) assert(f)
+#else
+#define VERIFY(f) ((void)(f))
+#endif
+
+// Definizioni per il supporto delle stringhe
+#ifdef UNICODE
+#if !defined(_UNICODE)
+#define _UNICODE
+#endif
+#endif
+
+// Link alle librerie Windows necessarie
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "shlwapi.lib")

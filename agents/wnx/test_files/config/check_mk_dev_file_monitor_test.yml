@@ -1,44 +1,210 @@
-# Test configuration for File Monitor Provider
-global:
-  enabled: true
-  sections:
-    - file_monitor  # Enable file_monitor section
+###############################################################################
+# Configurazione di test per il File Monitor Provider
+###############################################################################
 
 file_monitor:
-  enabled: true
-  timeout: 60
-  retry: 3
-  async: false  # Run synchronously for testing
-  cache_age: 0  # No caching for testing
+    # Intervallo di controllo in secondi
+    # Per i test usiamo un intervallo breve per velocizzare l'esecuzione
+    check_interval: 1
 
-  # Test paths
-  paths:
-    # Test single file monitoring
-    - path: "${TEMP}\\test_single.txt"
-      delete: true
+    # Lista dei percorsi da monitorare
+    paths:
+        # Test 1: Monitoraggio di un file specifico
+        - path: "C:\\Windows\\Temp\\test_single.log"
+          is_directory: false
+          delete: true
+          pattern: "*.log"
+          description: "Test di monitoraggio file singolo"
 
-    # Test glob pattern monitoring
-    - path: "${TEMP}\\test_*.log"
-      delete: false
+        # Test 2: Monitoraggio di una directory per file temporanei
+        - path: "C:\\Windows\\Temp\\test_dir"
+          is_directory: true
+          delete: true
+          pattern: "*.tmp"
+          description: "Test di monitoraggio directory per file temporanei"
 
-    # Test recursive monitoring
-    - path: "${TEMP}\\**\\*.tmp"
-      delete: true
+        # Test 3: Monitoraggio di file di log senza eliminazione
+        - path: "C:\\Logs\\test_logs"
+          is_directory: true
+          delete: false
+          pattern: "error_*.log"
+          description: "Test di monitoraggio file di log"
 
-  # Test settings
-  settings:
-    max_file_size: 1048576  # 1MB
-    max_files_per_check: 10
-    log_operations: true
+        # Test 4: Monitoraggio con pattern complesso
+        - path: "C:\\Data\\test_data"
+          is_directory: true
+          delete: true
+          pattern: "backup_[0-9]*.{bak,old}"
+          description: "Test di pattern matching complesso"
 
-  # Test notifications
-  notifications:
-    event_log: true
-    checkmk: true
+        # Test 5: Monitoraggio ricorsivo
+        - path: "C:\\Test\\recursive"
+          is_directory: true
+          delete: true
+          pattern: "*.temp"
+          recursive: true
+          description: "Test di monitoraggio ricorsivo"
 
-# Log settings for testing
-logging:
-  level: debug
-  console: true
-  file: true
-  filename: "${TEMP}\\file_monitor_test.log"
+        # Test 6: Monitoraggio con dimensione minima
+        - path: "C:\\Test\\size_filter"
+          is_directory: true
+          delete: true
+          pattern: "*.dat"
+          min_size: 1048576  # 1 MB
+          description: "Test di filtro per dimensione"
+
+        # Test 7: Monitoraggio con età minima
+        - path: "C:\\Test\\age_filter"
+          is_directory: true
+          delete: true
+          pattern: "*.old"
+          min_age: 3600  # 1 ora
+          description: "Test di filtro per età"
+
+        # Test 8: Monitoraggio con esclusioni
+        - path: "C:\\Test\\exclusions"
+          is_directory: true
+          delete: true
+          pattern: "*.test"
+          exclude_patterns:
+            - "important_*.test"
+            - "backup_*.test"
+          description: "Test di pattern di esclusione"
+
+# Configurazioni avanzate per i test
+advanced_settings:
+    # Impostazioni di logging per i test
+    logging:
+        enabled: true
+        level: "DEBUG"
+        file: "C:\\Logs\\file_monitor_test.log"
+        max_size: 10485760  # 10 MB
+        max_files: 5
+
+    # Impostazioni di notifica per i test
+    notifications:
+        enabled: true
+        methods:
+            - type: "file"
+              path: "C:\\Logs\\file_monitor_notifications.log"
+            - type: "event_log"
+              source: "CheckMK File Monitor Test"
+
+    # Impostazioni di performance per i test
+    performance:
+        max_files_per_scan: 1000
+        scan_timeout: 300  # secondi
+        thread_pool_size: 4
+
+    # Impostazioni di sicurezza per i test
+    security:
+        verify_permissions: true
+        require_admin: false
+        allowed_paths:
+            - "C:\\Windows\\Temp"
+            - "C:\\Logs"
+            - "C:\\Data"
+            - "C:\\Test"
+
+    # Impostazioni di recovery per i test
+    recovery:
+        enabled: true
+        backup_deleted_files: true
+        backup_location: "C:\\Backup\\file_monitor_test"
+        max_backup_size: 1073741824  # 1 GB
+
+# Configurazioni di test specifiche
+test_scenarios:
+    # Scenario 1: Test di carico
+    load_test:
+        num_files: 1000
+        file_size: 1024  # bytes
+        pattern: "load_test_*.tmp"
+
+    # Scenario 2: Test di concorrenza
+    concurrency_test:
+        num_threads: 4
+        operations_per_thread: 100
+        delay_between_ops: 100  # millisecondi
+
+    # Scenario 3: Test di resilienza
+    resilience_test:
+        simulate_errors: true
+        error_probability: 0.1
+        error_types:
+            - "access_denied"
+            - "file_locked"
+            - "disk_full"
+
+    # Scenario 4: Test di pattern matching
+    pattern_test:
+        test_patterns:
+            - pattern: "test_[0-9]{3}.tmp"
+              should_match:
+                - "test_123.tmp"
+                - "test_456.tmp"
+              should_not_match:
+                - "test_abc.tmp"
+                - "test_12.tmp"
+
+    # Scenario 5: Test di performance
+    performance_test:
+        duration: 300  # secondi
+        file_creation_rate: 10  # file al secondo
+        file_size_distribution:
+            min: 1024    # 1 KB
+            max: 102400  # 100 KB
+
+# Metriche da verificare durante i test
+test_metrics:
+    # Metriche di performance
+    performance:
+        scan_time_threshold: 1000  # millisecondi
+        memory_usage_threshold: 104857600  # 100 MB
+        cpu_usage_threshold: 50  # percentuale
+
+    # Metriche di accuratezza
+    accuracy:
+        false_positives_threshold: 0
+        false_negatives_threshold: 0
+        pattern_match_accuracy: 100  # percentuale
+
+    # Metriche di affidabilità
+    reliability:
+        error_rate_threshold: 0.01  # 1%
+        crash_threshold: 0
+        deadlock_threshold: 0
+
+# Configurazione dell'ambiente di test
+test_environment:
+    # Directory di test
+    test_directories:
+        - "C:\\Windows\\Temp\\test_single"
+        - "C:\\Windows\\Temp\\test_dir"
+        - "C:\\Logs\\test_logs"
+        - "C:\\Data\\test_data"
+        - "C:\\Test\\recursive"
+        - "C:\\Test\\size_filter"
+        - "C:\\Test\\age_filter"
+        - "C:\\Test\\exclusions"
+
+    # File di test predefiniti
+    test_files:
+        - path: "C:\\Windows\\Temp\\test_single\\test.log"
+          content: "Test log content"
+          size: 1024
+
+        - path: "C:\\Windows\\Temp\\test_dir\\test1.tmp"
+          content: "Temporary file 1"
+          size: 512
+
+        - path: "C:\\Logs\\test_logs\\error_001.log"
+          content: "Error log content"
+          size: 2048
+
+    # Configurazione di cleanup
+    cleanup:
+        enabled: true
+        cleanup_on_start: true
+        cleanup_on_end: true
+        preserve_logs: true

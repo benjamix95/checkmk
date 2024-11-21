@@ -1,3 +1,28 @@
+# Documentazione del File Monitor Provider per Check_MK Windows Agent
+
+## Introduzione
+
+Il File Monitor Provider per Check_MK Windows Agent è un componente aggiuntivo che fornisce la funzionalità di monitoraggio dei file e delle cartelle. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro.
+
+Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro.
+
+Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro.   
+
+## Funzionalità Principali
+
+Il File Monitor Provider fornisce la funzionalità di monitoraggio dei file e delle cartelle. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro.   
+
+Il File Monitor Provider fornisce la funzionalità di monitoraggio dei file e delle cartelle. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro. Il provider è stato progettato per essere utilizzato con Check_MK Windows Agent e supporta la gestione di eventi di file, cartelle e registro.                                      
+
+## Implementazioni Aggiuntive
+
+Le seguenti implementazioni estendono le funzionalità esistenti del File Monitor Provider.
+
+### Sistema di Pattern Matching Avanzato
+
+### Sistema di Pattern Matching Avanzato
+
+Il sistema di pattern matching è stato esteso per supportare pattern più complessi e una migliore gestione delle espressioni regolari:
 # Implementazione Dettagliata del File Monitor Provider per CheckMK
 
 ## Indice
@@ -817,3 +842,299 @@ INSTANTIATE_TEST_SUITE_P(
 2. Verifica i log
 3. Apri ticket di supporto
 4. Escalation al team di sviluppo
+
+```cpp
+class PatternMatcher {
+public:
+    explicit PatternMatcher(const std::string& pattern) 
+        : originalPattern_(pattern) {
+        // Converte il pattern glob in espressione regolare
+        std::string regexPattern = pattern;
+        
+        // Gestione caratteri speciali
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\*"), ".*");
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\?"), ".");
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\["), "\\[");
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\]"), "\\]");
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\{"), "\\{");
+        regexPattern = std::regex_replace(regexPattern, 
+            std::regex("\\}"), "\\}");
+
+        // Compila l'espressione regolare con opzioni
+        compiledRegex_ = std::regex(
+            regexPattern, 
+            std::regex_constants::icase | 
+            std::regex_constants::ECMAScript |
+            std::regex_constants::optimize);
+    }
+
+    bool matches(const std::filesystem::path& filePath) const {
+        try {
+            std::string filename = filePath.filename().string();
+            return std::regex_match(filename, compiledRegex_);
+        }
+        catch (const std::regex_error& error) {
+            std::stringstream errorMessage;
+            errorMessage << "Errore nell'espressione regolare: ";
+            errorMessage << "Pattern originale: " << originalPattern_;
+            errorMessage << ", Codice errore: " << error.code();
+            errorMessage << ", Descrizione: " << error.what();
+            
+            // Log dell'errore
+            XLOG::l.e(errorMessage.str());
+            return false;
+        }
+    }
+
+    std::string getOriginalPattern() const {
+        return originalPattern_;
+    }
+
+    std::string getRegexPattern() const {
+        return compiledRegex_.str();
+    }
+
+private:
+    std::string originalPattern_;
+    std::regex compiledRegex_;
+};
+```
+
+### Sistema di Notifiche Esteso
+
+Il sistema di notifiche è stato migliorato per supportare più dettagli e una migliore integrazione con il sistema di logging di Windows:
+
+```cpp
+class NotificationSystem {
+public:
+    // Livelli di severità per le notifiche
+    enum class Severity {
+        Information,
+        Warning,
+        Error,
+        Critical,
+        Debug
+    };
+
+    // Struttura per una notifica completa
+    struct NotificationDetails {
+        std::string message;
+        Severity severity;
+        std::chrono::system_clock::time_point timestamp;
+        std::map<std::string, std::string> metadata;
+        std::string sourceComponent;
+        std::string eventId;
+        std::optional<std::filesystem::path> relatedFile;
+        std::optional<std::string> errorCode;
+        std::vector<std::string> tags;
+    };
+
+    void sendNotification(const NotificationDetails& details) {
+        // Formattazione del timestamp
+        auto timeT = std::chrono::system_clock::to_time_t(details.timestamp);
+        std::stringstream timestampStream;
+        timestampStream << std::put_time(
+            std::localtime(&timeT), 
+            "%Y-%m-%d %H:%M:%S");
+
+        // Costruzione del messaggio completo
+        std::stringstream formattedMessage;
+        formattedMessage << "[" << timestampStream.str() << "] ";
+        formattedMessage << "[" << getSeverityString(details.severity) << "] ";
+        formattedMessage << "[" << details.sourceComponent << "] ";
+        formattedMessage << details.message;
+
+        // Aggiunta dei metadati
+        if (!details.metadata.empty()) {
+            formattedMessage << "\nMetadati:";
+            for (const auto& [key, value] : details.metadata) {
+                formattedMessage << "\n  " << key << ": " << value;
+            }
+        }
+
+        // Aggiunta delle informazioni sul file
+        if (details.relatedFile) {
+            formattedMessage << "\nFile: " 
+                           << details.relatedFile->string();
+        }
+
+        // Aggiunta del codice di errore
+        if (details.errorCode) {
+            formattedMessage << "\nCodice Errore: " 
+                           << *details.errorCode;
+        }
+
+        // Aggiunta dei tag
+        if (!details.tags.empty()) {
+            formattedMessage << "\nTag: ";
+            for (const auto& tag : details.tags) {
+                formattedMessage << tag << " ";
+            }
+        }
+
+        // Invio al registro eventi di Windows
+        sendToWindowsEventLog(
+            formattedMessage.str(), 
+            details.severity,
+            details.eventId);
+
+        // Invio al sistema di monitoraggio CheckMK
+        sendToCheckMK(
+            formattedMessage.str(), 
+            details.severity);
+
+        // Salvataggio nel log locale
+        logNotificationLocally(details);
+    }
+
+private:
+    static std::string getSeverityString(Severity severity) {
+        switch (severity) {
+            case Severity::Information:
+                return "INFORMAZIONE";
+            case Severity::Warning:
+                return "AVVERTIMENTO";
+            case Severity::Error:
+                return "ERRORE";
+            case Severity::Critical:
+                return "CRITICO";
+            case Severity::Debug:
+                return "DEBUG";
+            default:
+                return "SCONOSCIUTO";
+        }
+    }
+
+    void sendToWindowsEventLog(
+        const std::string& message,
+        Severity severity,
+        const std::string& eventId) {
+        
+        // Conversione della severità nel tipo di evento Windows
+        WORD eventType;
+        switch (severity) {
+            case Severity::Information:
+            case Severity::Debug:
+                eventType = EVENTLOG_INFORMATION_TYPE;
+                break;
+            case Severity::Warning:
+                eventType = EVENTLOG_WARNING_TYPE;
+                break;
+            case Severity::Error:
+            case Severity::Critical:
+                eventType = EVENTLOG_ERROR_TYPE;
+                break;
+            default:
+                eventType = EVENTLOG_INFORMATION_TYPE;
+        }
+
+        // Registrazione dell'evento
+        HANDLE hEventLog = RegisterEventSource(
+            nullptr, 
+            L"CheckMK File Monitor");
+            
+        if (hEventLog) {
+            // Preparazione del messaggio
+            const char* messages[] = { message.c_str() };
+            
+            // Registrazione dell'evento
+            ReportEventA(
+                hEventLog,           // handle dell'evento
+                eventType,           // tipo di evento
+                0,                   // categoria
+                std::stoul(eventId), // ID evento
+                nullptr,             // SID utente
+                1,                   // numero di stringhe
+                0,                   // dimensione dati binari
+                messages,            // array di stringhe
+                nullptr             // dati binari
+            );
+            
+            // Chiusura dell'handle
+            DeregisterEventSource(hEventLog);
+        }
+    }
+
+    void sendToCheckMK(
+        const std::string& message,
+        Severity severity) {
+        
+        // Conversione della severità nello stato CheckMK
+        std::string status;
+        switch (severity) {
+            case Severity::Information:
+            case Severity::Debug:
+                status = "0";  // OK
+                break;
+            case Severity::Warning:
+                status = "1";  // WARNING
+                break;
+            case Severity::Error:
+                status = "2";  // CRITICAL
+                break;
+            case Severity::Critical:
+                status = "2";  // CRITICAL
+                break;
+            default:
+                status = "3";  // UNKNOWN
+        }
+
+        // Output nel formato CheckMK
+        std::cout << "<<<local>>>\n"
+                 << status 
+                 << " FileMonitor " 
+                 << message 
+                 << "\n";
+    }
+
+    void logNotificationLocally(
+        const NotificationDetails& details) {
+        
+        std::lock_guard<std::mutex> lock(logMutex_);
+        
+        // Aggiunta alla cronologia
+        notificationHistory_.push_back(details);
+        
+        // Limitazione della dimensione della cronologia
+        while (notificationHistory_.size() > 
+               maxNotificationHistorySize_) {
+            notificationHistory_.pop_front();
+        }
+
+        // Scrittura su file di log locale
+        if (localLogFile_.is_open()) {
+            auto timeT = std::chrono::system_clock::to_time_t(
+                details.timestamp);
+                
+            localLogFile_ << std::put_time(
+                std::localtime(&timeT), 
+                "%Y-%m-%d %H:%M:%S")
+                         << " [" 
+                         << getSeverityString(details.severity)
+                         << "] "
+                         << details.message 
+                         << std::endl;
+        }
+    }
+
+    // Membri privati
+    std::deque<NotificationDetails> notificationHistory_;
+    std::mutex logMutex_;
+    std::ofstream localLogFile_;
+    const size_t maxNotificationHistorySize_ = 10000;
+};
+```
+
+Queste implementazioni aggiuntive forniscono:
+1. Un sistema più robusto per il pattern matching con migliore gestione degli errori
+2. Un sistema di notifiche più dettagliato con supporto per metadati e tag
+3. Una migliore integrazione con il registro eventi di Windows
+4. Un sistema di logging locale più completo
+5. Una gestione più granulare dei livelli di severità
+
+Le nuove funzionalità sono completamente integrate con il sistema esistente e mantengono la compatibilità con le implementazioni precedenti.

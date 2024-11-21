@@ -8,257 +8,271 @@
 
 ## Prerequisiti
 
-### 1. Software Richiesto
-```plaintext
-1. Visual Studio 2019 o superiore
+### Software Richiesto
+1. Microsoft Visual Studio 2022
+   - Versione Professional o Enterprise
    - Workload "Sviluppo desktop C++"
    - Componenti singoli:
-     * MSVC v142 build tools
-     * Windows 10 SDK
-     * C++ CMake tools
+     - MSVC v143 build tools
+     - Windows 10 SDK (10.0.22621.0)
+     - C++ CMake tools
+     - C++ ATL per build tools v143
+     - Test Adapter per Google Test
 
-2. CMake 3.15 o superiore
-   - Scaricabile da: https://cmake.org/download/
-   - Aggiungere al PATH di sistema
+2. CMake
+   - Versione minima: 3.20
+   - Installazione completa con aggiunta al PATH di sistema
 
-3. Git for Windows
-   - Necessario per clonare il repository
-   - Configurare git con credenziali
+3. Git per Windows
+   - Versione recente con supporto LFS
+   - Configurazione per gestione line-ending Windows
 
-4. Python 3.8 o superiore
-   - Necessario per gli script di build
-   - Aggiungere al PATH di sistema
-```
+4. Python
+   - Versione 3.8 o superiore
+   - Pip package manager
+   - Virtualenv (opzionale ma consigliato)
 
-### 2. Librerie Richieste
-```plaintext
-1. yaml-cpp
-   - Versione: 0.6.3 o superiore
-   - Usata per parsing configurazione
+### Librerie di Sviluppo
+1. vcpkg
+   - Installazione in C:\dev\tools\vcpkg
+   - Integrazione con Visual Studio
+   - Librerie richieste:
+     - yaml-cpp:x64-windows
+     - fmt:x64-windows
+     - gtest:x64-windows
 
-2. fmt
-   - Versione: 7.0.0 o superiore
-   - Usata per formattazione stringhe
+2. Windows SDK
+   - Componenti di sviluppo Windows
+   - Header di sistema
+   - Librerie di sistema
 
-3. GoogleTest
-   - Versione: 1.10.0 o superiore
-   - Necessario per unit testing
-```
+### Ambiente di Sviluppo
+1. Variabili d'Ambiente
+   - VCPKG_ROOT=C:\dev\tools\vcpkg
+   - CMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake
+   - PATH aggiornato per includere:
+     - Visual Studio build tools
+     - CMake
+     - Git
+     - Python
 
-### 3. Spazio su Disco
-```plaintext
-- 2GB per il codice sorgente
-- 5GB per la build completa
-- 1GB per le dipendenze
-```
+2. Configurazione Visual Studio
+   - Estensioni installate:
+     - CMake Tools
+     - C++ Tools
+     - Git Tools
+     - Test Explorer UI
 
-## Setup Ambiente
+## Procedura di Compilazione
 
-### 1. Clonare il Repository
+### 1. Preparazione dell'Ambiente
+
+1.1. Clonazione del Repository
 ```batch
-# 1. Creare directory di lavoro
-mkdir C:\Dev
-cd C:\Dev
-
-# 2. Clonare repository
+mkdir C:\Dev\Projects
+cd C:\Dev\Projects
 git clone https://github.com/Checkmk/checkmk.git
 cd checkmk
-
-# 3. Verificare struttura
-dir agents\wnx
 ```
 
-### 2. Configurare Visual Studio
-```plaintext
-1. Aprire Visual Studio
-2. Selezionare: Strumenti -> Ottieni Strumenti e Funzionalità
-3. Installare:
-   - Sviluppo di Windows Desktop con C++
-   - Sviluppo multipiattaforma C++
-   - Strumenti CMake di Visual C++
-```
-
-### 3. Configurare Variabili Ambiente
+1.2. Installazione Dipendenze
 ```batch
-# 1. Variabili di Sistema
-setx CHECKMK_DEV C:\Dev\checkmk
-setx CHECKMK_BUILD C:\Dev\checkmk\build
-
-# 2. Variabili Build
-setx CMAKE_PREFIX_PATH C:\Libraries
-setx YAML_ROOT C:\Libraries\yaml-cpp
-setx FMT_ROOT C:\Libraries\fmt
+cd C:\dev\tools\vcpkg
+vcpkg install yaml-cpp:x64-windows
+vcpkg install fmt:x64-windows
+vcpkg install gtest:x64-windows
+vcpkg integrate install
 ```
 
-## Compilazione
-
-### 1. Generare Soluzione Visual Studio
+1.3. Creazione Directory di Build
 ```batch
-# 1. Creare directory build
-mkdir %CHECKMK_BUILD%
-cd %CHECKMK_BUILD%
+cd C:\Dev\Projects\checkmk\agents\wnx
+mkdir build
+cd build
+```
 
-# 2. Generare soluzione VS
-cmake -G "Visual Studio 16 2019" -A x64 ^
+### 2. Configurazione del Progetto
+
+2.1. Generazione File di Progetto Visual Studio
+```batch
+cmake -G "Visual Studio 17 2022" -A x64 ^
     -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_TOOLCHAIN_FILE=C:/dev/tools/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+    -DCMAKE_PREFIX_PATH=C:/dev/tools/vcpkg/installed/x64-windows ^
     -DBUILD_TESTING=ON ^
-    -DYAML_CPP_BUILD_TESTS=OFF ^
-    -DFMT_DOC=OFF ^
-    %CHECKMK_DEV%
-
-# Perché questi flag:
-# - Visual Studio 2019 64-bit
-# - Build Release per performance
-# - Testing abilitato per verifiche
-# - Disabilita test yaml-cpp per velocità
-# - Disabilita doc fmt per velocità
+    ..
 ```
 
-### 2. Compilare il Progetto
+2.2. Verifica Configurazione
+- Controllare il file CMakeCache.txt
+- Verificare le dipendenze trovate
+- Controllare i percorsi configurati
+- Verificare le opzioni di build
+
+### 3. Compilazione
+
+3.1. Build Completo
 ```batch
-# 1. Compilare tutto
 cmake --build . --config Release
-
-# 2. Compilare solo l'agente
-cmake --build . --config Release --target check_mk_agent
-
-# 3. Compilare i test
-cmake --build . --config Release --target check_mk_tests
 ```
 
-### 3. Verificare la Build
+3.2. Build dei Componenti Specifici
 ```batch
-# 1. Eseguire i test
-ctest -C Release -R FileMonitorTest
-
-# 2. Verificare l'output
-type Testing\Temporary\LastTest.log
-
-# 3. Verificare i file generati
-dir Release\check_mk_agent.exe
-dir Release\check_mk_tests.exe
+cmake --build . --config Release --target engine
+cmake --build . --config Release --target file_monitor
+cmake --build . --config Release --target unit_tests
 ```
 
-## Troubleshooting
+3.3. Verifica della Compilazione
+- Controllare i file di output
+- Verificare i log di compilazione
+- Controllare le dipendenze
+- Verificare i simboli esportati
 
-### 1. Errori Comuni
+### 4. Test
 
-#### CMake non trova yaml-cpp
-```plaintext
-Errore: Could not find yaml-cpp
-
-Soluzione:
-1. Verificare YAML_ROOT
-2. Verificare installazione yaml-cpp
-3. Aggiungere manualmente in CMakeLists.txt:
-   set(YAML_CPP_ROOT "C:/Libraries/yaml-cpp")
-```
-
-#### Errori di Linking
-```plaintext
-Errore: LNK2019: unresolved external symbol
-
-Soluzione:
-1. Verificare librerie nel path
-2. Ricompilare in modalità Debug
-3. Verificare versioni librerie
-```
-
-#### Errori di Compilazione
-```plaintext
-Errore: C2065: undeclared identifier
-
-Soluzione:
-1. Verificare include path
-2. Verificare dipendenze
-3. Pulire e ricompilare
-```
-
-### 2. Procedure di Recovery
-
-#### Clean Build
+4.1. Esecuzione Test Unitari
 ```batch
-# 1. Eliminare directory build
-rd /s /q %CHECKMK_BUILD%
-
-# 2. Ricreare directory
-mkdir %CHECKMK_BUILD%
-cd %CHECKMK_BUILD%
-
-# 3. Rigenerare soluzione
-cmake -G "Visual Studio 16 2019" -A x64 %CHECKMK_DEV%
+ctest -C Release -V
 ```
 
-#### Reset Environment
+4.2. Verifica dei Risultati
+- Analizzare i report dei test
+- Verificare la copertura
+- Controllare i log di errore
+- Validare le funzionalità
+
+### 5. Installazione
+
+5.1. Creazione Pacchetto di Installazione
 ```batch
-# 1. Backup configurazione
-copy CMakeCache.txt CMakeCache.txt.bak
-
-# 2. Reset cache
-del CMakeCache.txt
-
-# 3. Riconfigurare
-cmake %CHECKMK_DEV%
+cmake --build . --config Release --target package
 ```
 
-### 3. Verifica Ambiente
+5.2. Verifica del Pacchetto
+- Controllare i file inclusi
+- Verificare le dipendenze
+- Testare l'installazione
+- Validare la configurazione
 
-#### Test Sistema
+## Risoluzione Problemi
+
+### Problemi Comuni
+
+1. Errori di Compilazione
+   - Verificare i prerequisiti
+   - Controllare le versioni delle dipendenze
+   - Aggiornare gli strumenti di sviluppo
+   - Pulire la directory di build
+
+2. Errori di Linking
+   - Verificare le librerie
+   - Controllare i path
+   - Aggiornare vcpkg
+   - Ricostruire le dipendenze
+
+3. Errori di Test
+   - Verificare l'ambiente di test
+   - Controllare i file di configurazione
+   - Analizzare i log dettagliati
+   - Ricostruire i test
+
+### Procedure di Debug
+
+1. Build Debug
 ```batch
-# 1. Verificare Visual Studio
-cl.exe
-
-# 2. Verificare CMake
-cmake --version
-
-# 3. Verificare Python
-python --version
+cmake --build . --config Debug
 ```
 
-#### Test Librerie
+2. Analisi dei Log
+- CMake output
+- Compiler output
+- Linker output
+- Test output
+
+3. Strumenti di Diagnostica
+- Visual Studio Debugger
+- Process Explorer
+- Dependency Walker
+- Event Viewer
+
+## Manutenzione
+
+### Aggiornamenti
+
+1. Aggiornamento Dipendenze
 ```batch
-# 1. Verificare yaml-cpp
-dir %YAML_ROOT%\lib\yaml-cpp.lib
-
-# 2. Verificare fmt
-dir %FMT_ROOT%\lib\fmt.lib
-
-# 3. Verificare GoogleTest
-dir %GTEST_ROOT%\lib\gtest.lib
+vcpkg upgrade
+vcpkg update
 ```
+
+2. Pulizia Build
+```batch
+cmake --build . --target clean
+rmdir /S /Q build
+mkdir build
+```
+
+3. Ricostruzione Completa
+- Eliminare la directory build
+- Riconfigurare CMake
+- Ricompilare tutto
+- Rieseguire i test
+
+### Backup
+
+1. Source Code
+- Commit regolari
+- Push su repository
+- Backup locali
+- Documentazione modifiche
+
+2. Build Artifacts
+- Backup binari
+- Backup configurazioni
+- Backup log
+- Backup test results
 
 ## Note Aggiuntive
 
-### 1. Performance Build
-```plaintext
-1. Utilizzare compilazione parallela
-   cmake --build . -j 8
+### Ottimizzazioni
 
-2. Disabilitare feature non necessarie
-   -DBUILD_DOCS=OFF
-   -DBUILD_EXAMPLES=OFF
+1. Compilazione
+- Parallel build
+- Precompiled headers
+- Link-time optimization
+- Profile-guided optimization
 
-3. Utilizzare link-time optimization
-   -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
-```
+2. Performance
+- Debug symbols
+- Release flags
+- Optimization levels
+- Memory management
 
-### 2. Debug Build
-```plaintext
-1. Abilitare simboli debug
-   cmake -DCMAKE_BUILD_TYPE=Debug
+### Sicurezza
 
-2. Abilitare sanitizers
-   -DENABLE_ASAN=ON
-   -DENABLE_UBSAN=ON
+1. Codice
+- Code signing
+- Verifica integrità
+- Scanning vulnerabilità
+- Analisi statica
 
-3. Abilitare logging dettagliato
-   -DDETAILED_LOGGING=ON
-```
+2. Build
+- Ambiente isolato
+- Controllo accessi
+- Logging sicuro
+- Audit trail
 
-### 3. Best Practices
-```plaintext
-1. Sempre pulire prima di switch branch
-2. Utilizzare build incrementali
-3. Verificare test dopo modifiche
-4. Mantenere ambiente aggiornato
-5. Documentare modifiche build
+### Documentazione
+
+1. Build System
+- CMake files
+- Build scripts
+- Dependency management
+- Configuration options
+
+2. Processo
+- Step-by-step guide
+- Troubleshooting
+- Best practices
+- Known issues

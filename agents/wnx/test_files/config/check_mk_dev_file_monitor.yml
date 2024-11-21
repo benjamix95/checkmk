@@ -1,47 +1,116 @@
-# File Monitor Configuration
-# This section configures the file monitoring functionality
+###############################################################################
+# Configurazione del File Monitor Provider
+###############################################################################
+
 file_monitor:
-    # Enable or disable the file monitor (optional, default: true)
-    enabled: true
-
-    # Timeout in seconds for file operations (optional, default: 60)
-    timeout: 60
-
-    # Retry count for failed operations (optional, default: 3)
-    retry: 3
-
-    # Check interval in seconds (optional, default: 300)
+    # Intervallo di controllo in secondi (default: 300)
     check_interval: 300
 
-    # List of paths to monitor
-    paths:
-        # Monitor a specific file and delete it when found
-        - path: "C:\\temp\\test.txt"
-          delete: true
+    # Intervallo orario per il monitoraggio (opzionale)
+    # Se non specificato, il monitoraggio viene eseguito 24/7
+    time_range:
+        start_hour: 9  # Ora di inizio (0-23)
+        end_hour: 17   # Ora di fine (0-23)
 
-        # Monitor log files without deletion
-        - path: "C:\\logs\\*.log"
-          delete: false
-
-        # Monitor and clean up temporary files
-        - path: "C:\\Windows\\Temp\\*.tmp"
-          delete: true
-
-        # Recursive monitoring of specific file types
-        - path: "C:\\Users\\**\\Downloads\\*.exe"
-          delete: true
-
-        # Monitor specific directory for any changes
-        - path: "C:\\important\\*.*"
-          delete: false
-
-    # Advanced settings (optional)
+    # Impostazioni avanzate
     settings:
-        # Maximum file size to process in bytes (optional, default: 104857600 [100MB])
-        max_file_size: 104857600
+        log_operations: true           # Abilita il logging delle operazioni
+        max_files_per_check: 1000      # Numero massimo di file per controllo
 
-        # Maximum number of files to process per check (optional, default: 1000)
-        max_files_per_check: 1000
+    # Lista dei percorsi da monitorare
+    paths:
+        # Esempio 1: Monitoraggio file temporanei di Windows
+        - path: "C:\\Windows\\Temp"
+          is_directory: true
+          delete: true
+          pattern: "*.tmp"
+          recursive: true
+          min_size: 1048576  # 1MB
+          min_age: 3600      # 1 ora
+          exclude_patterns:
+            - "important_*.tmp"
+            - "backup_*.tmp"
 
-        # Whether to log all file operations (optional, default: false)
-        log_operations: true
+        # Esempio 2: Monitoraggio file di log
+        - path: "C:\\Program Files\\Application\\Logs"
+          is_directory: true
+          delete: false
+          pattern: "error_*.log"
+          recursive: false
+
+        # Esempio 3: Monitoraggio file di backup
+        - path: "C:\\Backup"
+          is_directory: true
+          delete: true
+          pattern: "backup_[0-9]*.{bak,old}"
+          recursive: true
+          min_age: 604800  # 7 giorni
+
+        # Esempio 4: Monitoraggio file di crash
+        - path: "C:\\ProgramData\\CrashDumps"
+          is_directory: true
+          delete: true
+          pattern: "*.dmp"
+          recursive: false
+          min_size: 10485760  # 10MB
+
+        # Esempio 5: Monitoraggio download temporanei
+        - path: "C:\\Users\\Public\\Downloads"
+          is_directory: true
+          delete: true
+          pattern: "*.{tmp,temp}"
+          recursive: true
+          exclude_patterns:
+            - "setup_*.tmp"
+            - "install_*.tmp"
+
+# Configurazione del logging
+logging:
+    level: info                # Livello di logging (debug, info, warning, error)
+    file: true                 # Abilita il logging su file
+    console: true             # Abilita il logging su console
+    max_size: 10485760        # Dimensione massima del file di log (10MB)
+    max_files: 5              # Numero massimo di file di log da mantenere
+
+# Configurazione delle notifiche
+notifications:
+    event_log: true           # Invia notifiche al registro eventi di Windows
+    checkmk: true            # Invia notifiche al sistema CheckMK
+    levels:
+        file_found: info
+        file_deleted: warning
+        error: critical
+
+###############################################################################
+# Note sulla configurazione:
+#
+# 1. Percorsi:
+#    - Usare doppi backslash nei percorsi Windows
+#    - I percorsi possono essere assoluti o relativi
+#
+# 2. Pattern:
+#    - *.ext = tutti i file con estensione ext
+#    - prefix_* = tutti i file che iniziano con prefix
+#    - [0-9] = un carattere numerico
+#    - {ext1,ext2} = file con estensione ext1 o ext2
+#
+# 3. Intervalli di tempo:
+#    - min_age è in secondi
+#    - Valori comuni:
+#      1 ora    = 3600
+#      1 giorno = 86400
+#      1 sett.  = 604800
+#      30 gg    = 2592000
+#
+# 4. Dimensioni:
+#    - min_size è in bytes
+#    - Valori comuni:
+#      1 KB = 1024
+#      1 MB = 1048576
+#      1 GB = 1073741824
+#
+# 5. Esclusioni:
+#    - exclude_patterns ha priorità sul pattern principale
+#    - Utile per proteggere file importanti
+#
+###############################################################################
